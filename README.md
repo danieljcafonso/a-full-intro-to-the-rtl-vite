@@ -130,7 +130,7 @@ it("should show loading spinner", async () => {
 
 Now, let us do the same for the second scenario.
 
-Just one thing to be aware of: we need our API to return the same data so we can resort to Jest to do this. Here is how:
+Just one thing to be aware of: we need our API to return the same data so we can resort to Vitest to do this. Here is how:
 
 ```jsx
 import { dummyCarData } from "../../utils/test-utils";
