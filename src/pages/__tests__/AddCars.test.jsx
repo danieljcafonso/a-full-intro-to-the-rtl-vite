@@ -4,16 +4,18 @@ import {
   screen,
   waitFor,
   dummyCarCreateData,
+  dummyUserData,
 } from "../../utils/test-utils";
 import { useNavigate } from "react-router-dom";
-import { http, HttpResponse } from "msw";
-import { server } from "../../mocks/server";
+import { axiosInstance } from "../../api/carsAPI";
 
 const navigateMockFn = vi.fn();
+const postSpy = vi.spyOn(axiosInstance, "post");
 
 describe("AddCars tests", () => {
   beforeEach(() => {
     useNavigate.mockImplementation(() => navigateMockFn);
+    postSpy.mockResolvedValue({ data: dummyCarCreateData });
   });
 
   it("should render", () => {
@@ -139,6 +141,11 @@ describe("AddCars tests", () => {
 
     await user.click(addButton);
 
+    await waitFor(() => expect(postSpy).toHaveBeenCalled());
+    expect(postSpy).toHaveBeenCalledWith(
+      `/cars/${dummyUserData.username}`,
+      dummyCarCreateData
+    );
     const successMessage = await screen.findByText(/car was created/i);
     expect(successMessage).toBeInTheDocument();
   });
@@ -185,7 +192,7 @@ describe("AddCars tests", () => {
   });
 
   it("should show error on fail submit", async () => {
-    server.use(http.post("*", () => HttpResponse.json(null, { status: 403 })));
+    postSpy.mockRejectedValue(new Error("something went wrong"));
     const { user } = render(<AddCars />);
     const segment = screen.getByRole("combobox", {
       name: /segment/i,

@@ -136,7 +136,7 @@ Just one thing to be aware of: we need our API to return the same data so we can
 import { dummyCarData } from "../../utils/test-utils";
 import { axiosInstance } from "../../api/carsAPI";
 
-const getSpy = jest.spyOn(axiosInstance, "get");
+const getSpy = vi.spyOn(axiosInstance, "get");
 
 // inside Describe block
 beforeEach(() => {
@@ -277,7 +277,7 @@ Note: we will also need to mock our delete functionality.
 <p>
 
 ```jsx
-const deleteSpy = jest.spyOn(axiosInstance, "delete");
+const deleteSpy = vi.spyOn(axiosInstance, "delete");
 
 //inside describe block
 beforeEach(() => {
@@ -286,14 +286,14 @@ beforeEach(() => {
 });
 
 it("should delete a car", async () => {
-    render(<CarsList />);
+    const { user } = render(<CarsList />);
 
     const buttonContainer = await screen.findByTestId("buttonContainer");
     const deleteButton = within(buttonContainer).getByRole("button", {
       name: /delete/i,
     });
 
-    userEvent.click(deleteButton);
+    await user.click(deleteButton);
 
     const successMessage = await screen.findByText(/car was deleted/i);
     expect(successMessage).toBeInTheDocument();
@@ -302,14 +302,14 @@ it("should delete a car", async () => {
   it("should fail to delete a car", async () => {
     deleteSpy.mockRejectedValue(new Error("something went wrong"));
 
-    render(<CarsList />);
+    const { user } = render(<CarsList />);
 
     const buttonContainer = await screen.findByTestId("buttonContainer");
     const deleteButton = within(buttonContainer).getByRole("button", {
       name: /delete/i,
     });
 
-    userEvent.click(deleteButton);
+    await user.click(deleteButton);
 
     const errorMessage = await screen.findByText(
       /something went wrong when deleting a car/i
@@ -324,7 +324,7 @@ it("should delete a car", async () => {
 
 ### Part 3
 
-Now we can turn our attention to our Add Cars functionality (`AddCars.js`).
+Now we can turn our attention to our Add Cars functionality (`AddCars.jsx`).
 
 Let us start by identifying all the testing scenarios here:
 
@@ -364,6 +364,20 @@ beforeEach(() => {
 <p>
 
 ```jsx
+import AddCars from "../AddCars";
+import {
+  render,
+  screen,
+  waitFor,
+  dummyCarCreateData,
+  dummyUserData,
+} from "../../utils/test-utils";
+import { useNavigate } from "react-router-dom";
+import { axiosInstance } from "../../api/carsAPI";
+
+const navigateMockFn = vi.fn();
+const postSpy = vi.spyOn(axiosInstance, "post");
+
 describe("AddCars tests", () => {
   beforeEach(() => {
     useNavigate.mockImplementation(() => navigateMockFn);
@@ -402,19 +416,20 @@ describe("AddCars tests", () => {
   });
 
   it("shouldnt allow to submit an empty form", async () => {
-    render(<AddCars />);
+    const { user } = render(<AddCars />);
     const addButton = screen.getByRole("button", {
       name: /add car/i,
     });
-    userEvent.click(addButton);
+
+    await user.click(addButton);
 
     const errorMessage = await screen.findByText(/please fill in all data/i);
     expect(errorMessage).toBeInTheDocument();
   });
 
   it("shouldnt allow to submit a negative number", async () => {
-    render(<AddCars />);
-    const segment = screen.getByRole("button", {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
       name: /segment/i,
     });
     const model = screen.getByRole("textbox", {
@@ -436,19 +451,19 @@ describe("AddCars tests", () => {
       name: /add car/i,
     });
 
-    userEvent.click(segment);
+    await user.click(segment);
     const selectOption = screen.getByRole("option", {
       name: dummyCarCreateData.segment,
     });
-    userEvent.click(selectOption);
-    userEvent.type(model, dummyCarCreateData.model);
-    userEvent.type(brand, dummyCarCreateData.brand);
-    userEvent.type(fuel, dummyCarCreateData.fuel);
-    userEvent.clear(price);
-    userEvent.type(price, "-1");
-    userEvent.type(photo, dummyCarCreateData.photo);
+    user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, "-1");
+    await user.type(photo, dummyCarCreateData.photo);
 
-    userEvent.click(addButton);
+    await user.click(addButton);
 
     const errorMessage = await screen.findByText(
       /the price needs to be greater than 0/i
@@ -458,7 +473,8 @@ describe("AddCars tests", () => {
 
   it("should add a car", async () => {
     render(<AddCars />);
-    const segment = screen.getByRole("button", {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
       name: /segment/i,
     });
     const model = screen.getByRole("textbox", {
@@ -480,19 +496,19 @@ describe("AddCars tests", () => {
       name: /add car/i,
     });
 
-    userEvent.click(segment);
+    await user.click(segment);
     const selectOption = screen.getByRole("option", {
       name: dummyCarCreateData.segment,
     });
-    userEvent.click(selectOption);
-    userEvent.type(model, dummyCarCreateData.model);
-    userEvent.type(brand, dummyCarCreateData.brand);
-    userEvent.type(fuel, dummyCarCreateData.fuel);
-    userEvent.clear(price);
-    userEvent.type(price, dummyCarCreateData.price);
-    userEvent.type(photo, dummyCarCreateData.photo);
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
 
-    userEvent.click(addButton);
+    await user.click(addButton);
 
     await waitFor(() => expect(postSpy).toHaveBeenCalled());
     expect(postSpy).toHaveBeenCalledWith(
@@ -504,8 +520,8 @@ describe("AddCars tests", () => {
   });
 
   it("should navigate to cars list after submit", async () => {
-    render(<AddCars />);
-    const segment = screen.getByRole("button", {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
       name: /segment/i,
     });
     const model = screen.getByRole("textbox", {
@@ -527,28 +543,27 @@ describe("AddCars tests", () => {
       name: /add car/i,
     });
 
-    userEvent.click(segment);
+    await user.click(segment);
     const selectOption = screen.getByRole("option", {
       name: dummyCarCreateData.segment,
     });
-    userEvent.click(selectOption);
-    userEvent.type(model, dummyCarCreateData.model);
-    userEvent.type(brand, dummyCarCreateData.brand);
-    userEvent.type(fuel, dummyCarCreateData.fuel);
-    userEvent.clear(price);
-    userEvent.type(price, dummyCarCreateData.price);
-    userEvent.type(photo, dummyCarCreateData.photo);
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
 
-    userEvent.click(addButton);
+    await user.click(addButton);
 
     await waitFor(() => expect(navigateMockFn).toHaveBeenCalledWith("/cars"));
   });
 
   it("should show error on fail submit", async () => {
     postSpy.mockRejectedValue(new Error("something went wrong"));
-
-    render(<AddCars />);
-    const segment = screen.getByRole("button", {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
       name: /segment/i,
     });
     const model = screen.getByRole("textbox", {
@@ -570,19 +585,19 @@ describe("AddCars tests", () => {
       name: /add car/i,
     });
 
-    userEvent.click(segment);
+    await user.click(segment);
     const selectOption = screen.getByRole("option", {
       name: dummyCarCreateData.segment,
     });
-    userEvent.click(selectOption);
-    userEvent.type(model, dummyCarCreateData.model);
-    userEvent.type(brand, dummyCarCreateData.brand);
-    userEvent.type(fuel, dummyCarCreateData.fuel);
-    userEvent.clear(price);
-    userEvent.type(price, dummyCarCreateData.price);
-    userEvent.type(photo, dummyCarCreateData.photo);
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
 
-    userEvent.click(addButton);
+    await user.click(addButton);
 
     const errorMessage = await screen.findByText(
       /something went wrong when creating a car/i
@@ -598,7 +613,7 @@ describe("AddCars tests", () => {
 
 ## Exercise 4
 
-Let us now see our Login page (`Login.js`)
+Let us now see our Login page (`Login.jsx`)
 
 ### Part 1
 
@@ -626,8 +641,8 @@ Note: to be able to simulate an authenticated user, we need to interact with our
 
 ```jsx
 import * as useLocalStorage from "../../hooks/useLocalStorage";
-const setLocalStorage = jest.fn();
-useLocalStorage.default = jest.fn(() => ["danieljcafonso", setLocalStorage]);
+const setLocalStorage = vi.fn();
+useLocalStorage.default = vi.fn(() => ["danieljcafonso", setLocalStorage]);
 ```
 
 Now you can implement your tests.
@@ -639,15 +654,21 @@ Now you can implement your tests.
 <p>
 
 ```jsx
-const navigateMockFn = jest.fn();
+import Login from "../Login";
+import { render, screen, waitFor, dummyUserData } from "../../utils/test-utils";
+import * as useLocalStorage from "../../hooks/useLocalStorage";
+import { useNavigate } from "react-router-dom";
+import { axiosInstance } from "../../api/carsAPI";
 
-const postSpy = jest.spyOn(axiosInstance, "post");
+const navigateMockFn = vi.fn();
 
-const setLocalStorage = jest.fn();
+const postSpy = vi.spyOn(axiosInstance, "post");
+
+const setLocalStorage = vi.fn();
 
 describe("Login tests", () => {
   beforeEach(() => {
-    useLocalStorage.default = jest.fn(() => [null, setLocalStorage]);
+    useLocalStorage.default = vi.fn(() => [null, setLocalStorage]);
     useNavigate.mockImplementation(() => navigateMockFn);
     postSpy.mockResolvedValue({ data: [dummyUserData] });
   });
@@ -674,7 +695,7 @@ describe("Login tests", () => {
   });
 
   it("should login", async () => {
-    render(<Login />);
+    const { user } = render(<Login />);
     const usernameInput = screen.getByRole("textbox", {
       name: /username/i,
     });
@@ -684,9 +705,9 @@ describe("Login tests", () => {
     const loginButton = screen.getByRole("button", {
       name: /login/i,
     });
-    userEvent.type(usernameInput, dummyUserData.username);
-    userEvent.type(emailInput, dummyUserData.email);
-    userEvent.click(loginButton);
+    await user.type(usernameInput, dummyUserData.username);
+    await user.type(emailInput, dummyUserData.email);
+    await user.click(loginButton);
 
     await waitFor(() =>
       expect(setLocalStorage).toHaveBeenCalledWith(dummyUserData)
@@ -694,10 +715,7 @@ describe("Login tests", () => {
   });
 
   it("should call navigate on logged user", async () => {
-    useLocalStorage.default = jest.fn(() => [
-      "danieljcafonso",
-      setLocalStorage,
-    ]);
+    useLocalStorage.default = vi.fn(() => ["danieljcafonso", setLocalStorage]);
 
     render(<Login />);
 
@@ -712,13 +730,13 @@ describe("Login tests", () => {
 
 ### Part 3 and Part 4 (Extra credit)
 
-Repeat the same process for the Register form (`Register.js`)
+Repeat the same process for the Register form (`Register.jsx`)
 
 Thought: Tests help notice that patterns are similar, so we could probably turn those UIs into one file and change them depending on props or state.
 
 ## Exercise 5 (Extra credit)
 
-The Header (`Header.js`) is a constant between all pages and is responsible for dealing with some authentication scenarios, changing routes, and changing themes.
+The Header (`Header.jsx`) is a constant between all pages and is responsible for dealing with some authentication scenarios, changing routes, and changing themes.
 
 ### Part 1
 
@@ -757,13 +775,19 @@ Let us now implement them.
 <p>
 
 ```jsx
-const navigateMockFn = jest.fn();
+import { render, screen, waitFor, dummyUserData } from "../../utils/test-utils";
+import Header from "../Header";
+import * as useLocalStorage from "../../hooks/useLocalStorage";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const setLocalStorage = jest.fn();
+const navigateMockFn = vi.fn();
+
+const setLocalStorage = vi.fn();
 
 describe("Header tests", () => {
   beforeEach(() => {
-    useLocalStorage.default = jest.fn(() => [null, setLocalStorage]);
+    navigateMockFn.mockClear();
+    useLocalStorage.default = vi.fn(() => [null, setLocalStorage]);
     useNavigate.mockImplementation(() => navigateMockFn);
     useLocation.mockImplementation(() => ({ pathname: "/" }));
   });
@@ -787,7 +811,7 @@ describe("Header tests", () => {
   });
 
   it("should render logout button when authenticated", () => {
-    useLocalStorage.default = jest.fn(() => [dummyUserData, setLocalStorage]);
+    useLocalStorage.default = vi.fn(() => [dummyUserData, setLocalStorage]);
 
     render(<Header />);
     const logoutButton = screen.getByLabelText(
@@ -797,14 +821,14 @@ describe("Header tests", () => {
   });
 
   it("should logout on logout click", async () => {
-    useLocalStorage.default = jest.fn(() => [dummyUserData, setLocalStorage]);
+    useLocalStorage.default = vi.fn(() => [dummyUserData, setLocalStorage]);
 
-    render(<Header />);
+    const { user } = render(<Header />);
     const logoutButton = screen.getByLabelText(
       `Logout from ${dummyUserData.username}`
     );
 
-    userEvent.click(logoutButton);
+    await user.click(logoutButton);
     await waitFor(() => expect(setLocalStorage).toHaveBeenCalledWith(null));
   });
 
@@ -814,7 +838,7 @@ describe("Header tests", () => {
   });
 
   it("shouldnt redirect to login when authenticated", async () => {
-    useLocalStorage.default = jest.fn(() => [dummyUserData, setLocalStorage]);
+    useLocalStorage.default = vi.fn(() => [dummyUserData, setLocalStorage]);
     render(<Header />);
     await waitFor(() =>
       expect(navigateMockFn).not.toHaveBeenCalledWith("/login")
@@ -837,27 +861,13 @@ describe("Header tests", () => {
     );
   });
 
-  it("should navigate to new page on nav item click", () => {
-    render(<Header />);
+  it("should navigate to new page on nav item click", async () => {
+    const { user } = render(<Header />);
 
     const carsList = screen.getByRole("button", {
       name: /my cars/i,
     });
-    userEvent.click(carsList);
-    expect(navigateMockFn).toHaveBeenCalledWith("/cars");
-  });
-
-  it("should show and interact with secondary menu", () => {
-    render(<Header />);
-
-    const button = screen.getByRole("button", {
-      name: /open menu/i,
-    });
-    userEvent.click(button);
-    const carsList = screen.getByRole("menuitem", {
-      name: /my cars/i,
-    });
-    userEvent.click(carsList);
+    await user.click(carsList);
     expect(navigateMockFn).toHaveBeenCalledWith("/cars");
   });
 
@@ -915,6 +925,8 @@ To add MSW to your application, run the following;
 npm install msw --save-dev
 # or
 yarn add msw --dev
+# or
+pnpm add msw --save-dev
 ```
 
 ## Create the handlers for the routes defined in the API file.
@@ -928,20 +940,20 @@ yarn add msw --dev
 ```jsx
 export const handlers = [
   // Handles a POST /login request
-  rest.post("*/carslogin*", (req, res, ctx) => {
-    return res(ctx.json([dummyUserData]));
+  http.post("*/carslogin*", () => {
+    return HttpResponse.json([dummyUserData]);
   }),
-  rest.post("*/carsuser*", (req, res, ctx) => {
-    return res(ctx.json(dummyUserData));
+  http.post("*/carsuser*", () => {
+    return HttpResponse.json(dummyUserData);
   }),
-  rest.post("*/cars*", (req, res, ctx) => {
-    return res(ctx.json(dummyCarCreateData));
+  http.post("*/cars*", () => {
+    return HttpResponse.json(dummyCarCreateData);
   }),
-  rest.get("*/cars*", (req, res, ctx) => {
-    return res(ctx.json(dummyCarList));
+  http.get("*/cars*", () => {
+    return HttpResponse.json(dummyCarList);
   }),
-  rest.delete("*/cars*", (req, res, ctx) => {
-    return res(ctx.json({}));
+  http.delete("*/cars*", () => {
+    return HttpResponse.json({});
   }),
 ];
 ```
@@ -996,5 +1008,9 @@ Go through all tests and delete every spy you added previously. You can leverage
 ```jsx
 import { rest } from "msw";
 import { server } from "../../mocks/server";
-server.use(rest.get("*", (req, res, ctx) => res(ctx.status(200))));
+server.use(
+  http.get("*", () => {
+    return HttpResponse.json(null, { status: 200 });
+  })
+);
 ```

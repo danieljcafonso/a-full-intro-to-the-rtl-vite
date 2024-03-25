@@ -1,7 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import * as useLocalStorage from "./hooks/useLocalStorage";
 import { dummyUserData } from "./utils/test-utils";
-import { server } from "./mocks/server";
 
 vi.mock("react-router-dom", () => ({
   ...vi.importActual("react-router-dom"),
@@ -14,12 +13,9 @@ const useLocalStorageOriginalImplementation = useLocalStorage.default;
 beforeEach(() => {
   useLocalStorage.default = vi.fn(() => [dummyUserData, vi.fn()]);
 });
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterAll(() => {
   useLocalStorage.default = useLocalStorageOriginalImplementation;
-  server.close();
 });
-afterEach(() => server.resetHandlers());
 
 const errorLog = console.error;
 console.error = (error) => {

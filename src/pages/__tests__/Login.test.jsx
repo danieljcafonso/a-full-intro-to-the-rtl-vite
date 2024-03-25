@@ -2,8 +2,11 @@ import Login from "../Login";
 import { render, screen, waitFor, dummyUserData } from "../../utils/test-utils";
 import * as useLocalStorage from "../../hooks/useLocalStorage";
 import { useNavigate } from "react-router-dom";
+import { axiosInstance } from "../../api/carsAPI";
 
 const navigateMockFn = vi.fn();
+
+const postSpy = vi.spyOn(axiosInstance, "post");
 
 const setLocalStorage = vi.fn();
 
@@ -11,6 +14,7 @@ describe("Login tests", () => {
   beforeEach(() => {
     useLocalStorage.default = vi.fn(() => [null, setLocalStorage]);
     useNavigate.mockImplementation(() => navigateMockFn);
+    postSpy.mockResolvedValue({ data: [dummyUserData] });
   });
 
   it("should render", () => {
