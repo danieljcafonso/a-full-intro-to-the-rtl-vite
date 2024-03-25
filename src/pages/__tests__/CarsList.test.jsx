@@ -34,4 +34,36 @@ describe("CarsList tests", () => {
     const noCarsMessage = await screen.findByText("No cars to display...");
     expect(noCarsMessage).toBeInTheDocument();
   });
+
+  it("should delete a car", async () => {
+    const { user } = render(<CarsList />);
+
+    const buttonContainer = await screen.findByTestId("buttonContainer");
+    const deleteButton = within(buttonContainer).getByRole("button", {
+      name: /delete/i,
+    });
+
+    await user.click(deleteButton);
+
+    const successMessage = await screen.findByText(/car was deleted/i);
+    expect(successMessage).toBeInTheDocument();
+  });
+
+  it("should fail to delete a car", async () => {
+    deleteSpy.mockRejectedValue(new Error("something went wrong"));
+
+    const { user } = render(<CarsList />);
+
+    const buttonContainer = await screen.findByTestId("buttonContainer");
+    const deleteButton = within(buttonContainer).getByRole("button", {
+      name: /delete/i,
+    });
+
+    await user.click(deleteButton);
+
+    const errorMessage = await screen.findByText(
+      /something went wrong when deleting a car/i
+    );
+    expect(errorMessage).toBeInTheDocument();
+  });
 });
