@@ -351,7 +351,7 @@ Now you have all the information you need to implement these tests. You need to 
 
 ```jsx
 import { useNavigate } from "react-router-dom";
-const navigateMockFn = jest.fn();
+const navigateMockFn = vi.fn();
 beforeEach(() => {
   useNavigate.mockImplementation(() => navigateMockFn);
 });
