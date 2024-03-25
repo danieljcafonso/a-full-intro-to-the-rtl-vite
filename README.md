@@ -242,3 +242,371 @@ it("should show no cars warning when no data", async () => {
 </p>
 
 </details>
+
+## Exercise 3
+
+Let’s keep our attention on the Cars List (`CarsList.js`). Now we want to start thinking about mutations. On this page, we have some mutations on the Delete Car functionality.
+
+### Part 1
+
+Identify all the tests to implement on the `CarsList.js` tests regarding the Delete functionality.
+
+<details>
+
+<summary> See list </summary>
+
+<p>
+
+1. should delete a car successfully
+2. should fail to delete a car
+
+</p>
+
+</details>
+
+### Part 2
+
+Let us implement these scenarios.
+
+Note: we will also need to mock our delete functionality.
+
+<details>
+
+<summary> See solution </summary>
+
+<p>
+
+```jsx
+const deleteSpy = vi.spyOn(axiosInstance, "delete");
+
+//inside describe block
+beforeEach(() => {
+		...
+    deleteSpy.mockResolvedValue({});
+});
+
+it("should delete a car", async () => {
+    const { user } = render(<CarsList />);
+
+    const buttonContainer = await screen.findByTestId("buttonContainer");
+    const deleteButton = within(buttonContainer).getByRole("button", {
+      name: /delete/i,
+    });
+
+    await user.click(deleteButton);
+
+    const successMessage = await screen.findByText(/car was deleted/i);
+    expect(successMessage).toBeInTheDocument();
+  });
+
+  it("should fail to delete a car", async () => {
+    deleteSpy.mockRejectedValue(new Error("something went wrong"));
+
+    const { user } = render(<CarsList />);
+
+    const buttonContainer = await screen.findByTestId("buttonContainer");
+    const deleteButton = within(buttonContainer).getByRole("button", {
+      name: /delete/i,
+    });
+
+    await user.click(deleteButton);
+
+    const errorMessage = await screen.findByText(
+      /something went wrong when deleting a car/i
+    );
+    expect(errorMessage).toBeInTheDocument();
+  });
+```
+
+</p>
+
+</details>
+
+### Part 3
+
+Now we can turn our attention to our Add Cars functionality (`AddCars.jsx`).
+
+Let us start by identifying all the testing scenarios here:
+
+<details>
+
+<summary> See list </summary>
+
+<p>
+
+1. should render all the elements
+2. should not allow submitting an empty form
+3. should not allow submitting a form with a negative number
+4. should create a car successfully
+5. should navigate to the cars list after submitting a form
+6. should show an error when failing to submit a form
+
+</p>
+
+</details>
+
+### Part 4
+
+Now you have all the information you need to implement these tests. You need to be aware of something first. To mock the navigate function you can do the following:
+
+```jsx
+import { useNavigate } from "react-router-dom";
+const navigateMockFn = jest.fn();
+beforeEach(() => {
+  useNavigate.mockImplementation(() => navigateMockFn);
+});
+```
+
+<details>
+
+<summary> See solution </summary>
+
+<p>
+
+```jsx
+import AddCars from "../AddCars";
+import {
+  render,
+  screen,
+  waitFor,
+  dummyCarCreateData,
+  dummyUserData,
+} from "../../utils/test-utils";
+import { useNavigate } from "react-router-dom";
+import { axiosInstance } from "../../api/carsAPI";
+
+const navigateMockFn = vi.fn();
+const postSpy = vi.spyOn(axiosInstance, "post");
+
+describe("AddCars tests", () => {
+  beforeEach(() => {
+    useNavigate.mockImplementation(() => navigateMockFn);
+    postSpy.mockResolvedValue({ data: dummyCarCreateData });
+  });
+
+  it("should render", () => {
+    render(<AddCars />);
+    const segment = screen.getByTestId(/segment/i);
+    const model = screen.getByRole("textbox", {
+      name: /model/i,
+    });
+    const brand = screen.getByRole("textbox", {
+      name: /brand/i,
+    });
+    const fuel = screen.getByRole("textbox", {
+      name: /fuel/i,
+    });
+    const price = screen.getByRole("spinbutton", {
+      name: /price/i,
+    });
+    const photo = screen.getByRole("textbox", {
+      name: /photo url/i,
+    });
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    expect(segment).toBeInTheDocument();
+    expect(model).toBeInTheDocument();
+    expect(brand).toBeInTheDocument();
+    expect(fuel).toBeInTheDocument();
+    expect(price).toBeInTheDocument();
+    expect(photo).toBeInTheDocument();
+    expect(addButton).toBeInTheDocument();
+  });
+
+  it("shouldnt allow to submit an empty form", async () => {
+    const { user } = render(<AddCars />);
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    await user.click(addButton);
+
+    const errorMessage = await screen.findByText(/please fill in all data/i);
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  it("shouldnt allow to submit a negative number", async () => {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
+      name: /segment/i,
+    });
+    const model = screen.getByRole("textbox", {
+      name: /model/i,
+    });
+    const brand = screen.getByRole("textbox", {
+      name: /brand/i,
+    });
+    const fuel = screen.getByRole("textbox", {
+      name: /fuel/i,
+    });
+    const price = screen.getByRole("spinbutton", {
+      name: /price/i,
+    });
+    const photo = screen.getByRole("textbox", {
+      name: /photo url/i,
+    });
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    await user.click(segment);
+    const selectOption = screen.getByRole("option", {
+      name: dummyCarCreateData.segment,
+    });
+    user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, "-1");
+    await user.type(photo, dummyCarCreateData.photo);
+
+    await user.click(addButton);
+
+    const errorMessage = await screen.findByText(
+      /the price needs to be greater than 0/i
+    );
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  it("should add a car", async () => {
+    render(<AddCars />);
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
+      name: /segment/i,
+    });
+    const model = screen.getByRole("textbox", {
+      name: /model/i,
+    });
+    const brand = screen.getByRole("textbox", {
+      name: /brand/i,
+    });
+    const fuel = screen.getByRole("textbox", {
+      name: /fuel/i,
+    });
+    const price = screen.getByRole("spinbutton", {
+      name: /price/i,
+    });
+    const photo = screen.getByRole("textbox", {
+      name: /photo url/i,
+    });
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    await user.click(segment);
+    const selectOption = screen.getByRole("option", {
+      name: dummyCarCreateData.segment,
+    });
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
+
+    await user.click(addButton);
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalled());
+    expect(postSpy).toHaveBeenCalledWith(
+      `/cars/${dummyUserData.username}`,
+      dummyCarCreateData
+    );
+    const successMessage = await screen.findByText(/car was created/i);
+    expect(successMessage).toBeInTheDocument();
+  });
+
+  it("should navigate to cars list after submit", async () => {
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
+      name: /segment/i,
+    });
+    const model = screen.getByRole("textbox", {
+      name: /model/i,
+    });
+    const brand = screen.getByRole("textbox", {
+      name: /brand/i,
+    });
+    const fuel = screen.getByRole("textbox", {
+      name: /fuel/i,
+    });
+    const price = screen.getByRole("spinbutton", {
+      name: /price/i,
+    });
+    const photo = screen.getByRole("textbox", {
+      name: /photo url/i,
+    });
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    await user.click(segment);
+    const selectOption = screen.getByRole("option", {
+      name: dummyCarCreateData.segment,
+    });
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
+
+    await user.click(addButton);
+
+    await waitFor(() => expect(navigateMockFn).toHaveBeenCalledWith("/cars"));
+  });
+
+  it("should show error on fail submit", async () => {
+    postSpy.mockRejectedValue(new Error("something went wrong"));
+    const { user } = render(<AddCars />);
+    const segment = screen.getByRole("combobox", {
+      name: /segment/i,
+    });
+    const model = screen.getByRole("textbox", {
+      name: /model/i,
+    });
+    const brand = screen.getByRole("textbox", {
+      name: /brand/i,
+    });
+    const fuel = screen.getByRole("textbox", {
+      name: /fuel/i,
+    });
+    const price = screen.getByRole("spinbutton", {
+      name: /price/i,
+    });
+    const photo = screen.getByRole("textbox", {
+      name: /photo url/i,
+    });
+    const addButton = screen.getByRole("button", {
+      name: /add car/i,
+    });
+
+    await user.click(segment);
+    const selectOption = screen.getByRole("option", {
+      name: dummyCarCreateData.segment,
+    });
+    await user.click(selectOption);
+    await user.type(model, dummyCarCreateData.model);
+    await user.type(brand, dummyCarCreateData.brand);
+    await user.type(fuel, dummyCarCreateData.fuel);
+    await user.clear(price);
+    await user.type(price, dummyCarCreateData.price);
+    await user.type(photo, dummyCarCreateData.photo);
+
+    await user.click(addButton);
+
+    const errorMessage = await screen.findByText(
+      /something went wrong when creating a car/i
+    );
+    expect(errorMessage).toBeInTheDocument();
+  });
+});
+```
+
+</p>
+
+</details>
