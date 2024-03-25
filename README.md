@@ -929,7 +929,7 @@ yarn add msw --dev
 pnpm add msw --save-dev
 ```
 
-## Create the handlers for the routes defined in the API file.
+### Create the handlers for the routes defined in the API file.
 
 <details>
 
