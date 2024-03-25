@@ -1,16 +1,9 @@
 import CarsList from "../CarsList";
-import { render, screen, within, dummyCarData } from "../../utils/test-utils";
-import { axiosInstance } from "../../api/carsAPI";
-
-const getSpy = vi.spyOn(axiosInstance, "get");
-const deleteSpy = vi.spyOn(axiosInstance, "delete");
+import { render, screen, within } from "../../utils/test-utils";
+import { http, HttpResponse } from "msw";
+import { server } from "../../mocks/server";
 
 describe("CarsList tests", () => {
-  beforeEach(() => {
-    getSpy.mockResolvedValue(dummyCarData);
-    deleteSpy.mockResolvedValue({});
-  });
-
   it("should show loading spinner", async () => {
     render(<CarsList />);
     const loadingSpinner = await screen.findByRole("progressbar");
@@ -28,7 +21,7 @@ describe("CarsList tests", () => {
   });
 
   it("should show no cars warning when no data", async () => {
-    getSpy.mockResolvedValue({});
+    server.use(http.get("*", () => HttpResponse.json(null, { status: 200 })));
 
     render(<CarsList />);
     const noCarsMessage = await screen.findByText("No cars to display...");
@@ -50,7 +43,9 @@ describe("CarsList tests", () => {
   });
 
   it("should fail to delete a car", async () => {
-    deleteSpy.mockRejectedValue(new Error("something went wrong"));
+    server.use(
+      http.delete("*", () => HttpResponse.json(null, { status: 403 }))
+    );
 
     const { user } = render(<CarsList />);
 
